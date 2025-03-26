@@ -35,44 +35,6 @@
 
     <!-- External CSS -->
     <link rel="stylesheet" href="./styles.css">
-    <style>
-        .splash-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #fff;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            transition: opacity 0.5s ease-out;
-        }
-        
-        .splash-screen.hide {
-            opacity: 0;
-            pointer-events: none;
-        }
-        
-        .splash-logo {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 20px;
-        }
-        
-        .splash-title {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        
-        .splash-subtitle {
-            font-size: 16px;
-            color: #777;
-        }
-    </style>
 </head>
 <body>
     <!-- iOS Install Banner -->
@@ -114,7 +76,7 @@
             <!-- Subject tables will be generated here -->
         </div>
 
-        <!-- Controls section without reset button -->
+        <!-- Remove export button from controls section -->
         <div class="controls">
             <button class="action-btn" id="refresh-dates">
                 <span class="refresh-icon">↻</span> Refresh Days
@@ -167,23 +129,36 @@
                 { name: "P1", date: "May 15th" },
                 { name: "P2", date: "May 27th" }
             ]
-        }
+        };
         
-        // Load the exams - always use the default exams data
+        // Load the saved exams or use default
         function loadExams() {
-            return defaultExams;
+            try {
+                const savedExams = localStorage.getItem('exams');
+                if (savedExams) {
+                    return JSON.parse(savedExams);
+                } else {
+                    return defaultExams;
+                }
+            } catch (e) {
+                console.error('Error loading saved exams:', e);
+                return defaultExams;
+            }
         }
         
-        // Function to save exams - no-op since we don't want to save changes
+        // Function to save exams to localStorage
         function saveExams(examsData) {
-            // No-op - intentionally not saving to localStorage
-            console.log('Exams data changes not saved (fixed data mode)');
+            try {
+                localStorage.setItem('exams', JSON.stringify(examsData));
+            } catch (e) {
+                console.error('Error saving exams:', e);
+            }
         }
 
+        // Initialize exams
+        exams = loadExams();
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Always initialize exams from defaultExams
-            exams = defaultExams;
-            
             // Initialize only once with a flag
             if (!window.appInitialized) {
                 window.appInitialized = true;
@@ -196,8 +171,11 @@
         // Function to render exams in chronological order
         function renderExamsInOrder() {
             try {
-                // Always use the default exams
-                exams = defaultExams;
+                // If exams is undefined or empty, use the default exams
+                if (!exams || Object.keys(exams).length === 0) {
+                    exams = defaultExams;
+                    saveExams(exams);
+                }
                 
                 const examsArray = [];
                 
@@ -356,8 +334,11 @@
         // Function to render subjects
         function renderSubjects() {
             try {
-                // Always use the default exams
-                exams = defaultExams;
+                // If exams is undefined or empty, use the default exams
+                if (!exams || Object.keys(exams).length === 0) {
+                    exams = defaultExams;
+                    saveExams(exams);
+                }
                 
                 const container = document.getElementById('subjects-container');
                 if (!container) {
@@ -1007,15 +988,11 @@
             if (splashScreen) {
                 splashScreen.classList.add('hide');
                 setTimeout(() => {
-                    splashScreen.style.display = 'none';
                     if (splashScreen.parentNode) {
                         splashScreen.parentNode.removeChild(splashScreen);
                     }
                 }, 500);
             }
-
-            // Create view containers if they don't exist
-            createViewContainers();
 
             // Check if the subjects container exists
             const subjectsContainer = document.getElementById('subjects-container');
@@ -1031,31 +1008,6 @@
             // Update all days left
             updateAllDaysLeft();
             console.log('Days left updated');
-        }
-
-        // Helper function to create view containers
-        function createViewContainers() {
-            const subjectsContainer = document.getElementById('subjects-container');
-            if (!subjectsContainer) return;
-            
-            // Create containers for other views if they don't exist
-            let chronologicalContainer = document.getElementById('chronological-container');
-            if (!chronologicalContainer) {
-                chronologicalContainer = document.createElement('div');
-                chronologicalContainer.id = 'chronological-container';
-                chronologicalContainer.className = 'exam-table-container';
-                chronologicalContainer.style.display = 'none';
-                subjectsContainer.parentNode.appendChild(chronologicalContainer);
-            }
-            
-            let calendarContainer = document.getElementById('calendar-container');
-            if (!calendarContainer) {
-                calendarContainer = document.createElement('div');
-                calendarContainer.id = 'calendar-container';
-                calendarContainer.className = 'calendar-container';
-                calendarContainer.style.display = 'none';
-                subjectsContainer.parentNode.appendChild(calendarContainer);
-            }
         }
 
         // Add the missing showSaveMessage function
